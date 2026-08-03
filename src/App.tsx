@@ -14,7 +14,8 @@ import CourseView from './pages/student/CourseView';
 import LessonView from './pages/student/LessonView';
 import StudentCourses from './pages/student/StudentCourses';
 import MessagesPage from './pages/shared/MessagesPage';
-import GenericEmptyPage from './pages/shared/GenericEmptyPage';
+import EmptyState from './components/shared/EmptyState';
+import { FolderX, Users, BookOpen, Settings } from 'lucide-react';
 import Leaderboard from './pages/student/Leaderboard';
 import StudentDetail from './pages/teacher/StudentDetail';
 import CourseBuilder from './pages/teacher/CourseBuilder';
@@ -46,8 +47,7 @@ function AuthScreen() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showRoleSelection, setShowRoleSelection] = useState(false);
-  const [tempUser, setTempUser] = useState<any>(null);
+  
 
   useEffect(() => {
     if (currentUser) {
@@ -67,8 +67,18 @@ function AuthScreen() {
           const userData = userDoc.data() as any;
           setCurrentUser({ ...userData, id: result.user.uid });
         } else {
-          setTempUser(result.user);
-          setShowRoleSelection(true);
+          const newUser = {
+            name: result.user.displayName || 'New Student',
+            role: 'student',
+            avatar: result.user.photoURL || undefined,
+            points: 0,
+            level: 1,
+            streak: 0,
+            completedLessons: [],
+            earnedBadges: []
+          };
+          await setDoc(doc(db, 'users', result.user.uid), newUser);
+          setCurrentUser({ ...newUser, id: result.user.uid });
         }
       }
     } catch (err: any) {
@@ -78,50 +88,7 @@ function AuthScreen() {
     }
   };
 
-  const handleSelectRole = async (role: 'student' | 'teacher' | 'parent' | 'admin') => {
-    if (!tempUser) return;
-    try {
-      setLoading(true);
-      const newUser = {
-        name: tempUser.displayName || 'New User',
-        role,
-        avatar: tempUser.photoURL || undefined,
-        points: role === 'student' ? 0 : undefined,
-        level: role === 'student' ? 1 : undefined,
-        streak: role === 'student' ? 0 : undefined,
-        childIds: role === 'parent' ? [] : undefined
-      };
-      await setDoc(doc(db, 'users', tempUser.uid), newUser);
-      setCurrentUser({ ...newUser, id: tempUser.uid });
-    } catch (err: any) {
-      setError('Failed to create profile');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (showRoleSelection) {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex flex-col items-center justify-center p-4 font-sans text-neutral-900">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-neutral-800 tracking-tight">Welcome, {tempUser?.displayName}!</h1>
-          <p className="text-neutral-500 mt-2 max-w-md mx-auto">Please select your role to continue.</p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-3xl">
-          {['student', 'teacher', 'parent', 'admin'].map((r) => (
-            <button 
-              key={r}
-              onClick={() => handleSelectRole(r as any)} 
-              disabled={loading}
-              className="p-6 bg-white rounded-2xl border border-neutral-200 shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-3 capitalize font-bold disabled:opacity-50"
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  
 
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col items-center justify-center p-4 font-sans text-neutral-900">
@@ -169,7 +136,7 @@ function AppContent() {
         <Route path="leaderboard" element={<Leaderboard />} />
         <Route path="courses" element={<StudentCourses />} />
         <Route path="messages" element={<MessagesPage />} />
-        <Route path="labs" element={<GenericEmptyPage title="VR Labs" type="general" />} />
+        <Route path="labs" element={<div className="pt-6"><EmptyState icon={FolderX} title="VR Labs" description="No content available." /></div>} />
       </Route>
 
       {/* Teacher Routes */}
@@ -187,17 +154,17 @@ function AppContent() {
         <Route index element={<ParentDashboard />} />
         <Route path="children" element={<ParentChildren />} />
         <Route path="messages" element={<MessagesPage />} />
-        <Route path="resources" element={<GenericEmptyPage title="Parent Resources" type="general" />} />
+        <Route path="resources" element={<div className="pt-6"><EmptyState icon={FolderX} title="Parent Resources" description="No content available." /></div>} />
       </Route>
 
       {/* Admin Routes */}
       <Route path="/admin" element={<ProtectedRoute allowedRole="admin"><AdminLayout /></ProtectedRoute>}>
         <Route index element={<AdminDashboard />} />
-        <Route path="users" element={<GenericEmptyPage title="User Management" type="students" />} />
-        <Route path="courses" element={<GenericEmptyPage title="Course Oversight" type="courses" />} />
-        <Route path="gamification" element={<GenericEmptyPage title="Gamification Config" type="settings" />} />
+        <Route path="users" element={<div className="pt-6"><EmptyState icon={Users} title="User Management" description="No students assigned yet." /></div>} />
+        <Route path="courses" element={<div className="pt-6"><EmptyState icon={BookOpen} title="Course Oversight" description="You do not have any courses available right now." /></div>} />
+        <Route path="gamification" element={<div className="pt-6"><EmptyState icon={Settings} title="Gamification Config" description="Settings panel is under construction." /></div>} />
         <Route path="reports" element={<AdminReports />} />
-        <Route path="settings" element={<GenericEmptyPage title="System Settings" type="settings" />} />
+        <Route path="settings" element={<div className="pt-6"><EmptyState icon={Settings} title="System Settings" description="Settings panel is under construction." /></div>} />
       </Route>
       
       <Route path="*" element={<Navigate to="/" replace />} />

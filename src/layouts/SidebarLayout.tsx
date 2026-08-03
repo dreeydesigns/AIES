@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { logout } from '../lib/firebase';
 import { BookOpen, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -16,7 +17,8 @@ export default function SidebarLayout({ role, navLinks }: { role: string, navLin
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout();
     setCurrentUser(null);
     navigate('/');
   };
@@ -72,7 +74,7 @@ export default function SidebarLayout({ role, navLinks }: { role: string, navLin
             className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            Switch Role
+            Sign Out
           </button>
         </div>
       </aside>

@@ -1,7 +1,17 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
+const configModules = import.meta.glob('../../firebase-applet-config.json', { eager: true });
+const configModule: any = Object.values(configModules)[0];
+const firebaseConfig = configModule ? configModule.default : {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -18,19 +28,13 @@ let isSigningIn = false;
 let cachedAccessToken: string | null = null;
 
 export const initAuth = (
-  onAuthSuccess?: (user: User, token: string) => void,
+  onAuthSuccess?: (user: User) => void,
   onAuthFailure?: () => void
 ) => {
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user) {
-      if (cachedAccessToken) {
-        if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
-      } else if (!isSigningIn) {
-        cachedAccessToken = null;
-        if (onAuthFailure) onAuthFailure();
-      }
+      if (onAuthSuccess) onAuthSuccess(user);
     } else {
-      cachedAccessToken = null;
       if (onAuthFailure) onAuthFailure();
     }
   });

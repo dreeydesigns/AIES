@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { checkBadges } from '../utils/badge-manager';
 import { initAuth, db } from '../lib/firebase';
-import { collection, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { useFirestoreUsers, useFirestoreCourses } from '../hooks/useFirestore';
 
 export type Role = 'student' | 'teacher' | 'parent' | 'admin' | null;
@@ -15,6 +15,8 @@ export interface User {
   level?: number;
   streak?: number;
   childIds?: string[];
+  completedLessons?: string[];
+  earnedBadges?: string[];
 }
 
 export interface Lesson {
@@ -78,8 +80,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
-  const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
+  const completedLessons = currentUser?.completedLessons || [];
+  const earnedBadges = currentUser?.earnedBadges || [];
   
   const [quizzes, setQuizzes] = useState<Record<string, Quiz>>(mockQuizzes);
   
@@ -88,9 +90,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribeAuth = initAuth(
-      (user) => {
-        // Auth state is ready, but we wait for user doc to load
-        setIsAuthReady(true);
+      async (user) => {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setCurrentUser({ ...userDoc.data(), id: user.uid } as User);
+          }
+        } catch (e) {
+          console.error("Error loading user profile", e);
+        } finally {
+          setIsAuthReady(true);
+        }
       },
       () => {
         setCurrentUser(null);
@@ -126,34 +136,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const completeLesson = async (lessonId: string, pointsEarned: number, quizScore?: number) => {
-    if (!completedLessons.includes(lessonId)) {
+    if (!completedLessons.includes(lessonId) && currentUser && currentUser.role === 'student') {
       const newCompleted = [...completedLessons, lessonId];
-      setCompletedLessons(newCompleted);
       
-      if (currentUser && currentUser.role === 'student') {
-        const updatedPoints = (currentUser.points || 0) + pointsEarned;
-        const updatedLevel = Math.floor(updatedPoints / 500) + 1; // 500 pts per level
-        
-        await updateDoc(doc(db, 'users', currentUser.id), {
-          points: updatedPoints,
-          level: updatedLevel
-        });
-        
-        // Check badges
-        const earned = checkBadges({
-          points: updatedPoints,
-          completedCount: newCompleted.length,
-          lastQuizScore: quizScore,
-          streak: currentUser.streak
-        });
-        earned.forEach(b => awardBadge(b));
-      }
+      const updatedPoints = (currentUser.points || 0) + pointsEarned;
+      const updatedLevel = Math.floor(updatedPoints / 500) + 1;
+      
+      const earned = checkBadges({
+        points: updatedPoints,
+        completedCount: newCompleted.length,
+        lastQuizScore: quizScore,
+        streak: currentUser.streak
+      });
+      const newBadges = [...new Set([...earnedBadges, ...earned])];
+      
+      await updateDoc(doc(db, 'users', currentUser.id), {
+        points: updatedPoints,
+        level: updatedLevel,
+        completedLessons: newCompleted,
+        earnedBadges: newBadges
+      });
     }
   };
 
-  const awardBadge = (badgeId: string) => {
-    if (!earnedBadges.includes(badgeId)) {
-      setEarnedBadges(prev => [...prev, badgeId]);
+  const awardBadge = async (badgeId: string) => {
+    if (currentUser && !earnedBadges.includes(badgeId)) {
+      await updateDoc(doc(db, 'users', currentUser.id), {
+        earnedBadges: [...earnedBadges, badgeId]
+      });
     }
   };
 
