@@ -27,7 +27,7 @@ export default function SidebarLayout({ role, navLinks }: { role: string, navLin
 
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col md:flex-row font-sans text-neutral-900">
-      <aside className="w-full md:w-64 bg-white border-r border-neutral-200 flex-shrink-0 flex flex-col">
+      <aside className="w-full md:w-64 bg-white border-r border-neutral-200 flex-shrink-0 flex flex-col print:hidden">
         <div className="p-4 border-b border-neutral-200 flex items-center gap-3">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-lg flex items-center justify-center">
             <BookOpen className="w-4 h-4" />

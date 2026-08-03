@@ -4,7 +4,7 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if false;
     }
-
+    
     function isSignedIn() {
       return request.auth != null;
     }
@@ -12,11 +12,21 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
+    
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow create: if isOwner(userId) 
+                    && request.resource.data.role in ['student', 'teacher', 'parent'];
+                    
+      // A user can update their own document as long as they don't change their role.
+      // Alternatively, a parent can update a student's document to add themselves to parentIds.
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role)
+                    || (
+                      isSignedIn() 
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['parentIds'])
+                      // Ensure they are only adding their own uid
+                      && request.resource.data.parentIds.hasAll([request.auth.uid])
+                    );
     }
     
     match /courses/{courseId} {

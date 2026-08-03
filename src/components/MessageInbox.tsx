@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Send, User } from 'lucide-react';
 import EmptyState from './shared/EmptyState';
 
@@ -16,7 +17,16 @@ interface MessageInboxProps {
 }
 
 export default function MessageInbox({ currentUser, contacts }: MessageInboxProps) {
+  const [searchParams] = useSearchParams();
+  const initialContactId = searchParams.get('contactId');
   const [selectedContact, setSelectedContact] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (initialContactId && contacts.length > 0 && !selectedContact) {
+      const contact = contacts.find(c => c.id === initialContactId);
+      if (contact) setSelectedContact(contact);
+    }
+  }, [initialContactId, contacts, selectedContact]);
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', senderId: 'u2', recipientId: 'u1', text: 'Hi Alex, you did great on the last quiz!', timestamp: '2 hours ago' },
     { id: '2', senderId: 'u1', recipientId: 'u2', text: 'Thanks! I really enjoyed the VR lab.', timestamp: '1 hour ago' },

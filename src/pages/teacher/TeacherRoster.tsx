@@ -35,6 +35,7 @@ export default function TeacherRoster() {
                   <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Points</th>
                   <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Level</th>
                   <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Streak</th>
+                  <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Linked Guardian</th>
                   <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
@@ -49,6 +50,16 @@ export default function TeacherRoster() {
                     <td className="px-6 py-4 font-bold text-neutral-700">{student.points || 0}</td>
                     <td className="px-6 py-4 text-neutral-600">{student.level || 1}</td>
                     <td className="px-6 py-4 text-neutral-600">{student.streak || 0} days</td>
+                    <td className="px-6 py-4 text-neutral-600 text-sm">
+                      {student.parentIds && student.parentIds.length > 0 ? (
+                        (() => {
+                          const parent = users.find(u => u.id === student.parentIds?.[0]);
+                          return parent ? parent.name : 'Unknown Parent';
+                        })()
+                      ) : (
+                        <span className="text-neutral-400 italic">Not linked yet</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <button 
                         onClick={(e) => { 
@@ -59,6 +70,17 @@ export default function TeacherRoster() {
                       >
                         View Report
                       </button>
+                      {student.parentIds && student.parentIds.length > 0 && (
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            navigate(`/teacher/messages?contactId=${student.parentIds[0]}`);
+                          }}
+                          className="ml-4 text-sm font-medium text-amber-600 hover:text-amber-800 transition-colors"
+                        >
+                          Message Parent
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

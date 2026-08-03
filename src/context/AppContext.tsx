@@ -15,6 +15,8 @@ export interface User {
   level?: number;
   streak?: number;
   childIds?: string[];
+  parentIds?: string[];
+  linkCode?: string;
   completedLessons?: string[];
   earnedBadges?: string[];
 }

@@ -46,13 +46,24 @@ export default function StudentDetail() {
             </div>
           </div>
         </div>
-        <button 
-          onClick={() => navigate('/teacher/messages')}
-          className="px-6 py-3 bg-blue-50 text-blue-700 font-bold rounded-xl hover:bg-blue-100 transition-colors flex items-center gap-2"
-        >
-          <MessageSquare className="w-5 h-5" />
-          Message Parent/Student
-        </button>
+        <div className="flex flex-col gap-2">
+          <button 
+            onClick={() => navigate(`/teacher/messages?contactId=${student.id}`)}
+            className="px-6 py-2 bg-blue-50 text-blue-700 font-bold rounded-xl hover:bg-blue-100 transition-colors flex items-center gap-2 text-sm"
+          >
+            <MessageSquare className="w-4 h-4" />
+            Message Student
+          </button>
+          {student.parentIds && student.parentIds.length > 0 && (
+            <button 
+              onClick={() => navigate(`/teacher/messages?contactId=${student.parentIds[0]}`)}
+              className="px-6 py-2 bg-amber-50 text-amber-700 font-bold rounded-xl hover:bg-amber-100 transition-colors flex items-center gap-2 text-sm"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Message Parent
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
