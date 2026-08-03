@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-role-teacher-bg: var(--color-emerald-50);
+  --color-role-teacher-badge: var(--color-emerald-100);
+  --color-role-teacher-text: var(--color-emerald-700);
+
+  --color-role-parent-bg: var(--color-amber-50);
+  --color-role-parent-badge: var(--color-amber-100);
+  --color-role-parent-text: var(--color-amber-700);
+
+  --color-role-admin-bg: var(--color-purple-50);
+  --color-role-admin-badge: var(--color-purple-100);
+  --color-role-admin-text: var(--color-purple-700);
+
+  --color-role-student-bg: var(--color-blue-50);
+  --color-role-student-badge: var(--color-blue-100);
+  --color-role-student-text: var(--color-blue-700);
+}
