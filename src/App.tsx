@@ -23,7 +23,7 @@ import TeacherRoster from './pages/teacher/TeacherRoster';
 import ParentChildren from './pages/parent/ParentChildren';
 import TeacherReports from './pages/teacher/TeacherReports';
 import AdminReports from './pages/admin/AdminReports';
-import { googleSignIn, initAuth } from './lib/firebase';
+import { googleSignIn, emailSignIn, emailSignUp, initAuth } from './lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './lib/firebase';
 
@@ -47,21 +47,74 @@ function AuthScreen() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   
-
   useEffect(() => {
     if (currentUser) {
       navigate(`/${currentUser.role}`);
     }
   }, [currentUser, navigate]);
 
-  const handleSignIn = async () => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Please enter email and password.');
+      return;
+    }
+    try {
+      setLoading(true);
+      setError('');
+      
+      let user;
+      if (isSignUp) {
+        user = await emailSignUp(email, password);
+        const newUser = {
+          name: email.split('@')[0],
+          role: 'student',
+          points: 0,
+          level: 1,
+          streak: 0,
+          completedLessons: [],
+          earnedBadges: []
+        };
+        await setDoc(doc(db, 'users', user.uid), newUser);
+        setCurrentUser({ ...newUser, id: user.uid } as any);
+      } else {
+        user = await emailSignIn(email, password);
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as any;
+          setCurrentUser({ ...userData, id: user.uid });
+        } else {
+          // Fallback if document missing
+          const newUser = {
+            name: email.split('@')[0],
+            role: 'student',
+            points: 0,
+            level: 1,
+            streak: 0,
+            completedLessons: [],
+            earnedBadges: []
+          };
+          await setDoc(doc(db, 'users', user.uid), newUser);
+          setCurrentUser({ ...newUser, id: user.uid } as any);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
       setError('');
       const result = await googleSignIn();
       if (result) {
-        // Check if user exists in Firestore
         const userDoc = await getDoc(doc(db, 'users', result.user.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data() as any;
@@ -78,7 +131,7 @@ function AuthScreen() {
             earnedBadges: []
           };
           await setDoc(doc(db, 'users', result.user.uid), newUser);
-          setCurrentUser({ ...newUser, id: result.user.uid });
+          setCurrentUser({ ...newUser, id: result.user.uid } as any);
         }
       }
     } catch (err: any) {
@@ -87,9 +140,7 @@ function AuthScreen() {
       setLoading(false);
     }
   };
-
   
-
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col items-center justify-center p-4 font-sans text-neutral-900">
       <div className="text-center mb-8">
@@ -104,14 +155,65 @@ function AuthScreen() {
       
       <div className="bg-white p-8 rounded-2xl border border-neutral-200 shadow-sm w-full max-w-md flex flex-col items-center">
         {error && <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg w-full text-center">{error}</div>}
+        
+        <form onSubmit={handleEmailAuth} className="w-full flex flex-col gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1">Email</label>
+            <input 
+              type="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1">Password</label>
+            <input 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+          <button 
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-3 disabled:opacity-50 mt-2"
+          >
+            {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+          </button>
+        </form>
+        
+        <div className="w-full flex items-center gap-4 mb-6">
+          <div className="h-px bg-neutral-200 flex-1"></div>
+          <span className="text-sm text-neutral-500 font-medium">OR</span>
+          <div className="h-px bg-neutral-200 flex-1"></div>
+        </div>
+
         <button 
-          onClick={handleSignIn}
+          onClick={handleGoogleSignIn}
           disabled={loading}
-          className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
+          type="button"
+          className="w-full py-3 px-4 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-800 font-bold rounded-xl transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
         >
           <LogIn className="w-5 h-5" />
-          {loading ? 'Signing in...' : 'Sign In with Google'}
+          {loading ? 'Signing in...' : 'Continue with Google'}
         </button>
+        
+        <p className="mt-6 text-sm text-neutral-500 text-center">
+          {isSignUp ? "Already have an account? " : "Don't have an account? "}
+          <button 
+            type="button"
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-blue-600 font-bold hover:underline"
+          >
+            {isSignUp ? 'Sign In' : 'Sign Up'}
+          </button>
+        </p>
       </div>
     </div>
   );

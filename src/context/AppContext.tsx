@@ -85,8 +85,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   
   const [quizzes, setQuizzes] = useState<Record<string, Quiz>>(mockQuizzes);
   
-  const users = useFirestoreUsers();
-  const courses = useFirestoreCourses();
+  const users = useFirestoreUsers(!!currentUser);
+  const courses = useFirestoreCourses(!!currentUser);
 
   useEffect(() => {
     const unsubscribeAuth = initAuth(

@@ -3,10 +3,14 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { User, Course } from '../context/AppContext';
 
-export function useFirestoreUsers() {
+export function useFirestoreUsers(shouldSubscribe: boolean = true) {
   const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
+    if (!shouldSubscribe) {
+      setUsers([]);
+      return;
+    }
     const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
       const usersData: User[] = [];
       snapshot.forEach((doc) => {
@@ -20,10 +24,14 @@ export function useFirestoreUsers() {
   return users;
 }
 
-export function useFirestoreCourses() {
+export function useFirestoreCourses(shouldSubscribe: boolean = true) {
   const [courses, setCourses] = useState<Course[]>([]);
 
   useEffect(() => {
+    if (!shouldSubscribe) {
+      setCourses([]);
+      return;
+    }
     const unsubscribe = onSnapshot(collection(db, 'courses'), (snapshot) => {
       const coursesData: Course[] = [];
       snapshot.forEach((doc) => {
