@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import { db } from '../../lib/firebase';
 import { doc, updateDoc, collection, query, where, getDocs, arrayUnion } from 'firebase/firestore';
+import { linkChildByCode } from '../../lib/linkUtils';
 import { GraduationCap, Copy, BookOpen, Users, ArrowRight } from 'lucide-react';
 
 export default function Onboarding() {
@@ -33,38 +34,18 @@ export default function Onboarding() {
     setError('');
 
     try {
-      // Find the student with this link code
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('role', '==', 'student'), where('linkCode', '==', linkCodeInput));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        setError("That code doesn't match any student account. Ask your child to check their Settings page for their current code.");
-        setLoading(false);
-        return;
-      }
-
-      const studentDoc = querySnapshot.docs[0];
-      const studentId = studentDoc.id;
-
-      // Update parent's childIds
-      await updateDoc(doc(db, 'users', currentUser.id), {
-        childIds: arrayUnion(studentId)
-      });
-
-      // Update student's parentIds
-      await updateDoc(doc(db, 'users', studentId), {
-        parentIds: arrayUnion(currentUser.id)
-      });
-
-      // Update local state if needed (AppContext listens to firestore anyway, but we can do it to avoid flicker)
+      const studentId = await linkChildByCode(currentUser.id, linkCodeInput);
       const newChildIds = [...(currentUser.childIds || []), studentId];
       setCurrentUser({ ...currentUser, childIds: newChildIds });
       
       setLinkCodeInput('');
-      // Optionally we could add a success message or just navigate
       navigate(`/${currentUser.role}`);
     } catch (err: any) {
+      if (err.message) {
+        setError(err.message);
+      } else {
+        setError('An error occurred while linking. Please try again.');
+      }
       setError('An error occurred while linking. Please try again.');
     } finally {
       setLoading(false);

@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+const fs = require('fs');
+let code = fs.readFileSync('src/pages/shared/MessagesPage.tsx', 'utf8');
+
+code = `import React, { useState, useEffect } from 'react';
 import MessageInbox from '../../components/MessageInbox';
 import { useAppContext } from '../../context/AppContext';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -16,12 +19,7 @@ export default function MessagesPage() {
       let fetchedContacts: any[] = [];
 
       try {
-        if (currentUser.role === 'student') {
-          const q = query(usersRef, where('role', '==', 'teacher'));
-          const snapshot = await getDocs(q);
-          fetchedContacts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } else if (currentUser.role === 'parent') {
-          // Parents to their linked children's teachers (assuming all teachers for now)
+        if (currentUser.role === 'student' || currentUser.role === 'parent') {
           const q = query(usersRef, where('role', '==', 'teacher'));
           const snapshot = await getDocs(q);
           fetchedContacts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -75,3 +73,6 @@ export default function MessagesPage() {
     </div>
   );
 }
+`
+
+fs.writeFileSync('src/pages/shared/MessagesPage.tsx', code);

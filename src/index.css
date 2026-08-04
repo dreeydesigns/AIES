@@ -17,3 +17,17 @@
   --color-role-student-badge: var(--color-blue-100);
   --color-role-student-text: var(--color-blue-700);
 }
+
+@media print {
+  aside, nav {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+}

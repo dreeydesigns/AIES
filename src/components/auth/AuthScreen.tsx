@@ -4,16 +4,9 @@ import { useAppContext } from '../../context/AppContext';
 import { googleSignIn, emailSignIn, emailSignUp } from '../../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { generateLinkCode } from '../../lib/linkUtils';
 import { BookOpen, LogIn, User, Users, GraduationCap } from 'lucide-react';
 
-const generateLinkCode = () => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No 0, O, 1, I
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return 'AIES-' + result;
-};
 
 export default function AuthScreen() {
   const { currentUser, setCurrentUser } = useAppContext();
@@ -71,9 +64,8 @@ export default function AuthScreen() {
       
       let user;
       if (isSignUp) {
-        user = await emailSignUp(email, password);
-        const newUser = await handleCreateNewUserDoc(user.uid, null, null, selectedRole);
-        setCurrentUser({ ...newUser, id: user.uid } as any);
+        const signupResult = await emailSignUp(email, password, selectedRole, generateLinkCode());
+        setCurrentUser({ ...signupResult.userData, id: signupResult.user.uid } as any);
         navigate('/onboarding');
       } else {
         user = await emailSignIn(email, password);
@@ -89,7 +81,15 @@ export default function AuthScreen() {
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      if (err.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists. Please select "Back to Login" and sign in instead.');
+      } else if (err.message && err.message.toLowerCase().includes('offline')) {
+        setError('Network error: Unable to connect to the server. Please check your internet connection.');
+      } else if (err.code === 'auth/network-request-failed') {
+        setError('Network error: Failed to connect to authentication server.');
+      } else {
+        setError(err.message || 'Authentication failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -114,7 +114,13 @@ export default function AuthScreen() {
         }
       }
     } catch (err: any) {
-      if (err.code === 'auth/popup-blocked') { setError('Sign in popup was blocked. Please open the app in a new tab to sign in.'); } else { setError(err.message || 'Failed to sign in'); }
+      if (err.code === 'auth/popup-blocked') { 
+        setError('Sign in popup was blocked. Please open the app in a new tab to sign in.'); 
+      } else if (err.message && err.message.toLowerCase().includes('offline')) {
+        setError('Network error: Unable to connect to the database. Please check your connection.');
+      } else { 
+        setError(err.message || 'Failed to sign in'); 
+      }
     } finally {
       setLoading(false);
     }

@@ -20,11 +20,10 @@ service cloud.firestore {
                     
       // A user can update their own document as long as they don't change their role.
       // Alternatively, a parent can update a student's document to add themselves to parentIds.
-      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role)
+      allow update: if (isOwner(userId) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])))
                     || (
                       isSignedIn() 
                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['parentIds'])
-                      // Ensure they are only adding their own uid
                       && request.resource.data.parentIds.hasAll([request.auth.uid])
                     );
     }

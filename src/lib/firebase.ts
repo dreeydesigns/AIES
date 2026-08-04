@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, doc, setDoc } from 'firebase/firestore';
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -72,7 +72,21 @@ export const emailSignIn = async (email: string, password: string): Promise<User
   return result.user;
 };
 
-export const emailSignUp = async (email: string, password: string): Promise<User> => {
+export const emailSignUp = async (email: string, password: string, role: string, linkCode?: string): Promise<{user: User, userData: any}> => {
   const result = await createUserWithEmailAndPassword(auth, email, password);
-  return result.user;
+  const uid = result.user.uid;
+  const userData = {
+    name: 'New User',
+    role: role,
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`,
+    points: role === 'student' ? 0 : undefined,
+    level: role === 'student' ? 1 : undefined,
+    streak: role === 'student' ? 0 : undefined,
+    linkCode: role === 'student' ? (linkCode || Math.random().toString(36).substring(2, 8).toUpperCase()) : undefined,
+  };
+  
+  
+  await setDoc(doc(db, 'users', uid), userData);
+  
+  return { user: result.user, userData };
 };

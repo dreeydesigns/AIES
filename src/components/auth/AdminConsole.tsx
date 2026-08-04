@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
-import { emailSignIn } from '../../lib/firebase';
+import { emailSignIn, logout } from '../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Shield } from 'lucide-react';
@@ -13,6 +13,20 @@ export default function AdminConsole() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  const { currentUser } = useAppContext();
+
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.role === 'admin') {
+        navigate('/admin');
+      } else {
+        logout();
+        setCurrentUser(null);
+        setError('Access Denied');
+      }
+    }
+  }, [currentUser, navigate, setCurrentUser]);
 
   const handleAdminSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,14 +46,14 @@ export default function AdminConsole() {
           navigate('/admin');
         } else {
           // Reject non-admins
-          await import('../../lib/firebase').then(m => m.logout());
+          await logout();
           setCurrentUser(null);
-          setError('This account does not have admin access.');
+          setError('Access Denied');
         }
       } else {
-        await import('../../lib/firebase').then(m => m.logout());
+        await logout();
         setCurrentUser(null);
-        setError('This account does not have admin access.');
+        setError('Access Denied');
       }
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
